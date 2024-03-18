@@ -27,34 +27,46 @@ class Planet(db.Model, SerializerMixin):
 
     # Add relationship
     missions = db.relationship('Mission', back_populates='planet', cascade='all, delete-orphan')
+    scientists = association_proxy('missions', 'scientist')
 
     # Add serialization rules
-    serialize_rules = ('-missions.planet',)
+    serialize_rules = ('-missions',)
 
 
 class Scientist(db.Model, SerializerMixin):
     __tablename__ = 'scientists'
 
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String)
-    field_of_study = db.Column(db.String)
+    #nullable affects saving to db
+    name = db.Column(db.String, nullable=False)
+    field_of_study = db.Column(db.String, nullable=False)
 
     # Add relationship
     missions = db.relationship('Mission', back_populates='scientist', cascade='all, delete-orphan')
+    planets = association_proxy('missions', 'planet')
 
     # Add serialization rules
     serialize_rules = ('-missions.scientist',)
 
     # Add validation
-
+    @validates('name', 'field_of_study')
+    def validate_name(self, key, value):
+        if not value:
+            raise ValueError(f'{key} must be provided')
+        return value
+    
+    # def validate_field_of_study(self, key, new_study):
+    #     if not new_study:
+    #         raise ValueError("Field of study must be provided")
+    #     return new_study
 
 class Mission(db.Model, SerializerMixin):
     __tablename__ = 'missions'
 
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String)
-    scientist_id = db.Column(db.Integer, db.ForeignKey('scientists.id'))
-    planet_id = db.Column(db.Integer, db.ForeignKey('planets.id'))
+    name = db.Column(db.String, nullable = False)
+    scientist_id = db.Column(db.Integer, db.ForeignKey('scientists.id'), nullable = False)
+    planet_id = db.Column(db.Integer, db.ForeignKey('planets.id'), nullable = False)
 
     # Add relationships
     scientist = db.relationship('Scientist', back_populates='missions')
@@ -64,6 +76,17 @@ class Mission(db.Model, SerializerMixin):
     serialize_rules=('-planet.missions', '-scientist.missions')
 
     # Add validation
-
+    @validates('name', 'scientist_id', 'planet_id')
+    def validate_name(self, key, value):
+        if not value:
+            raise ValueError(f'{key} must be provided')
+        return value
+    
+    # @validates('scientist_id', 'planet_id')
+    # def validate_scientist_id(self, key, new_id):
+    #     if not new_id:
+    #         raise ValueError("Must have an id")
+    #     return new_id
+    
 
 # add any models you may need.
